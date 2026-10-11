@@ -5,9 +5,9 @@
   "title": "Visual defect detection for manufacturing",
   "tagline": "A YOLO detector fine-tuned on steel surface defects, exported to ONNX and served on CPU with a review screen for the quality inspector.",
   "category": "Computer Vision",
-  "status": "building",
+  "status": "done",
   "started": "2026-10-11",
-  "finished": "",
+  "finished": "2026-10-11",
   "pitch": "I built a visual inspection system that looks at a photo of a steel surface, draws a box around every defect, names the defect type and tells the inspector whether the part passes, needs a second look or is rejected. I fine-tuned a small YOLO model on a public dataset of 1,797 labelled steel images, measured it on images it never saw, and exported it so that it runs on an ordinary CPU with no graphics card and no deep learning framework installed. The inspector gets a review screen where every decision can be confirmed or corrected, and those corrections are saved as new training data.",
   "problem": "A steel plant, or any factory with a surface to inspect, checks parts by eye. People get tired, two inspectors disagree, and a defect that slips through is paid for later as a customer return. Cameras are cheap, but the plant needs software that finds the defect, says what kind it is, runs on the modest computer already next to the line, and is honest about how often it is wrong.",
   "solution": "A small object detection model (YOLO11 nano) is fine-tuned on the public NEU steel surface defect dataset, which has six defect types with a box drawn around each defect. The trained model is exported to the ONNX format and run with ONNX Runtime, so the serving side needs no PyTorch and works on a CPU. Around the model there is a decision layer that turns boxes into a verdict (pass, review, reject), an evaluation script that measures the exported model on held-out images, and a review screen plus a JSON API for the inspector and for other systems.",
@@ -18,7 +18,8 @@
     "Review screen where the inspector confirms or corrects each result, saved as a log for retraining",
     "JSON API so a line controller or another system can send an image and get the detections back",
     "Evaluation on held-out images: accuracy per defect type, missed defects, false alarms and speed",
-    "A classical OpenCV baseline, measured the same way, to show what the trained model adds"
+    "A classical OpenCV baseline, measured the same way, to show what the trained model adds",
+    "ONNX export verified box for box against the original PyTorch model"
   ],
   "stack": [
     {
@@ -52,8 +53,62 @@
       "why": "It is the standard Python test runner and the tests run offline."
     }
   ],
-  "keywords": [],
-  "topics": [],
+  "keywords": [
+    "computer vision",
+    "object detection",
+    "YOLO",
+    "YOLO11",
+    "YOLOv8",
+    "Ultralytics",
+    "defect detection",
+    "visual inspection",
+    "quality control",
+    "quality inspection",
+    "manufacturing",
+    "steel surface defects",
+    "NEU-DET",
+    "industrial AI",
+    "automated optical inspection",
+    "AOI",
+    "ONNX",
+    "ONNX Runtime",
+    "CPU inference",
+    "edge deployment",
+    "OpenCV",
+    "image processing",
+    "fine-tuning",
+    "transfer learning",
+    "custom object detection",
+    "bounding boxes",
+    "mAP",
+    "model export",
+    "Gradio",
+    "FastAPI",
+    "human in the loop",
+    "anomaly detection",
+    "image classification",
+    "PyTorch",
+    "machine vision",
+    "surface inspection"
+  ],
+  "topics": [
+    "computer-vision",
+    "object-detection",
+    "yolo",
+    "yolo11",
+    "ultralytics",
+    "defect-detection",
+    "visual-inspection",
+    "quality-control",
+    "manufacturing",
+    "onnx",
+    "onnxruntime",
+    "opencv",
+    "gradio",
+    "fastapi",
+    "neu-det",
+    "python"
+  ],
   "workflow": [
     {
       "step": "Image in",
@@ -224,30 +279,30 @@
     {
       "name": "Verification and documentation",
       "goal": "A repository a client can clone, run and trust.",
-      "status": "doing",
+      "status": "done",
       "steps": [
         {
           "text": "Run the full test suite offline",
-          "done": false
+          "done": true
         },
         {
           "text": "Run the quick start from a clean environment using only the serving requirements",
-          "done": false
+          "done": true
         },
         {
           "text": "Write the README with the diagram, real output, results and limits",
-          "done": false
+          "done": true
         },
         {
           "text": "Complete the dashboard entry: decisions, client questions, concepts, keywords",
-          "done": false
+          "done": true
         },
         {
           "text": "Check for secrets, add the licence, and make the final commit",
-          "done": false
+          "done": true
         }
       ],
-      "outcome": ""
+      "outcome": "The repository is complete: 69 tests pass offline, including in a fresh environment with only the serving requirements and no PyTorch. The README has the architecture diagram, the screenshot, the measured results with intervals, real command output, the API, the retraining steps, the limits and the licence situation of the code, the model and the dataset. The dashboard entry has 9 decisions with alternatives, 13 client questions, 22 concepts and 36 keywords. No secrets are tracked."
     }
   ],
   "decisions": [
@@ -414,18 +469,392 @@
         }
       ],
       "at_scale": "On a real line the camera would trigger the API directly, results would go to the plant's quality system, the review screen would sit at the inspection station with a login, and reviewed images would flow into a labelling tool and a scheduled retraining job."
+    },
+    {
+      "title": "How to handle the licence of YOLO and of the dataset",
+      "chosen": "Use Ultralytics YOLO for training because it is what clients ask for by name, keep it out of the serving code, and state plainly that the model file is AGPL-3.0 and that the dataset has no stated licence. My own code is MIT.",
+      "why": "Ultralytics YOLO is published under AGPL-3.0 and the company states that models trained with it carry that licence. A client who ships a closed product must either buy the Ultralytics Enterprise licence or use another detector. I would rather tell the client this in the first meeting than have their lawyer find it later. Because the data preparation, the metrics, the evaluation, the ONNX serving code and the review screen do not import Ultralytics, swapping the detector means replacing one training script.",
+      "alternatives": [
+        {
+          "option": "Train with a permissively licensed detector from the start (YOLOX or RT-DETR, both Apache-2.0)",
+          "why_not": "It avoids the question, but clients search for YOLO and Ultralytics is the tool most teams already use. It is the right choice for a closed commercial product without an Enterprise licence, and I say so."
+        },
+        {
+          "option": "Say nothing and license everything as MIT",
+          "why_not": "It would be wrong, and it would be the client's legal problem later."
+        },
+        {
+          "option": "Do not commit the model file",
+          "why_not": "Then a stranger could not run the project without an 82 minute training run. The file is included, with its licence stated next to it."
+        }
+      ],
+      "at_scale": "Licensing is settled before the first line of code: either the Enterprise licence is budgeted, or the detector is chosen for its licence. The same applies to training data: the client's own images, with clear ownership."
     }
   ],
-  "results": [],
-  "client_qa": [],
-  "concepts": [],
-  "limits": [],
-  "run": [],
-  "files": [],
+  "results": [
+    {
+      "metric": "mAP at IoU 0.5 on the test set (270 images, 626 defects)",
+      "value": "0.747, 95% interval 0.720 to 0.782",
+      "how": "python -m defects.evaluate"
+    },
+    {
+      "metric": "mAP at IoU 0.5 to 0.95 on the test set",
+      "value": "0.413, 95% interval 0.392 to 0.442",
+      "how": "python -m defects.evaluate"
+    },
+    {
+      "metric": "Defects found at the working thresholds",
+      "value": "469 of 626 (recall 0.75), with 258 false alarms (precision 0.65)",
+      "how": "python -m defects.evaluate"
+    },
+    {
+      "metric": "Best defect types (AP at 0.5)",
+      "value": "scratches 0.950, patches 0.930, inclusion 0.847, pitted surface 0.837",
+      "how": "python -m defects.evaluate"
+    },
+    {
+      "metric": "Weakest defect types (AP at 0.5)",
+      "value": "rolled-in scale 0.526, crazing 0.394",
+      "how": "python -m defects.evaluate"
+    },
+    {
+      "metric": "Defective test images rejected, sent to review, passed",
+      "value": "268, 0 and 2 of 270",
+      "how": "python -m defects.evaluate"
+    },
+    {
+      "metric": "Finding a defect of any type: model against the OpenCV baseline (AP at 0.5)",
+      "value": "0.786 against 0.094",
+      "how": "python -m defects.evaluate and python -m defects.baseline"
+    },
+    {
+      "metric": "Latency per image on CPU (Intel Xeon E5-1620 v3), full call",
+      "value": "21 ms median, 34 ms at the 95th percentile, about 46 images per second",
+      "how": "python -m defects.evaluate"
+    },
+    {
+      "metric": "ONNX export against PyTorch on 60 validation images",
+      "value": "107 of 107 boxes matched, largest confidence difference 0.0",
+      "how": "python -m defects.export"
+    },
+    {
+      "metric": "Training time on CPU",
+      "value": "81.7 minutes for 50 epochs on 8 cores",
+      "how": "python -m defects.train"
+    },
+    {
+      "metric": "Model file size",
+      "value": "10.5 MB",
+      "how": "python -m defects.export"
+    },
+    {
+      "metric": "Automated tests",
+      "value": "69 passed, also in an environment with no PyTorch installed",
+      "how": "pytest -q"
+    }
+  ],
+  "client_qa": [
+    {
+      "q": "How accurate is it? Can I trust it on my line?",
+      "a": "On images it never saw, it finds 75 percent of the labelled defects, and its overall detection score (mAP at 0.5) is 0.747. It is strong on four defect types, scratches, patches, inclusions and pitted surface, with scores between 0.84 and 0.95, and weak on two, crazing and rolled-in scale. But these numbers are for a public dataset. On your line, with your camera and your steel, I would expect to retrain on a few hundred of your own labelled images per defect type and measure again before anyone relies on it."
+    },
+    {
+      "q": "How many good parts will it wrongly reject? Scrap costs me money.",
+      "a": "I cannot tell you from this dataset, and I would rather say that than invent a number. Every image in the public dataset contains a defect, so there are no good parts to measure false rejects on. What I can say is that at the current settings it raises 258 false boxes across 270 images, half of them on one defect type, crazing. The first thing I would do in a real project is collect images of good parts and set the thresholds from the cost of a false reject against the cost of a missed defect."
+    },
+    {
+      "q": "What does it miss?",
+      "a": "On the test set it missed 157 of 626 defects at box level, mostly the two texture-like types: 47 rolled-in scale and 40 crazing. At image level, which is closer to how a plant thinks, 2 of 270 defective images would have passed with nothing flagged. It rarely misses a scratch (7 of 85) or a patch (14 of 123)."
+    },
+    {
+      "q": "Do I need a GPU or special hardware?",
+      "a": "No. It runs on an ordinary processor in about 21 milliseconds per image, which is around 46 images a second, measured on a desktop Xeon processor from 2014. Training also ran on CPU, in 82 minutes. A graphics card would only make retraining faster. For a high resolution line camera the speed would need measuring again, because those images are much larger."
+    },
+    {
+      "q": "How much labelling work is needed for my own defects?",
+      "a": "This model was trained on about 1,250 images with 2,900 boxes, roughly 300 to 700 boxes per defect type. As a rule of thumb I would start with 200 to 300 labelled images per defect type from your line, see where it fails, and add more of those cases. The review screen is built for exactly this: every time the inspector says the model was wrong, the image is saved, and those are the most valuable images to label next."
+    },
+    {
+      "q": "Can it connect to our line or our quality system?",
+      "a": "Yes. There is a JSON API: a camera trigger or a PLC gateway posts an image and gets back the verdict, the defect types, the box positions and the confidences. The model is a standard ONNX file, so it can also be loaded directly from C++ or C# on an industrial PC without Python. What is not built here is the plant-specific part: the camera driver, the reject actuator and the link to your MES."
+    },
+    {
+      "q": "Isn't this just a YOLO tutorial? What did you actually build?",
+      "a": "Fair question. Training YOLO is twenty lines and I used the library for that. What I built is everything around it that a tutorial skips: a fixed data split with no leakage, the scoring written out and tested so I can explain every number, a classical baseline to show the model is worth it, an export that is verified box for box against the original, serving code with no PyTorch, thresholds per defect type chosen on separate data, a decision rule, a review loop that collects retraining data, and a list of what does not work. The model is the easy tenth."
+    },
+    {
+      "q": "Can we use this commercially? What about licences?",
+      "a": "My code is MIT, so yes for the code. Two things need a decision. The YOLO library I trained with is AGPL-3.0 and that licence extends to the trained model, so for a closed product you either buy the Ultralytics Enterprise licence or I retrain with an Apache-licensed detector, which the code is structured to allow. And the public dataset has no stated licence, so a commercial model should be trained on your own images, which it needs anyway."
+    },
+    {
+      "q": "Why does the model do so badly on crazing?",
+      "a": "Crazing is a network of fine cracks spread over the whole surface, with no clear edge. The people who labelled the dataset drew the boxes inconsistently: sometimes one big box, sometimes several small ones. The model finds the crazing, but its boxes do not line up with the labelled ones, so the box-overlap score is low. Published results on this dataset show the same pattern. In practice I would treat crazing as a property of the whole image rather than a box."
+    },
+    {
+      "q": "What is mAP and why should I care about that number?",
+      "a": "It is the standard score for detectors, between 0 and 1. It checks two things at once: did the model find the defects, and did it avoid false alarms, across all confidence settings. A box counts as correct if it overlaps the labelled box by at least half. I report it because it lets you compare with other systems, but the numbers that matter for a plant are in the same report: how many defects were missed and how many false alarms were raised."
+    },
+    {
+      "q": "How do the thresholds work, and can we change them?",
+      "a": "Each defect type has its own confidence threshold, chosen automatically on a separate set of images so that the balance of misses and false alarms is best. A box above the threshold rejects the part; a weaker box sends it to a person. You can change them in one JSON file, override them with one setting, or move a slider in the review screen to make the system more or less sensitive and see the effect immediately."
+    },
+    {
+      "q": "What happens when the product or the lighting changes?",
+      "a": "Accuracy will drop, as with any vision model, and the system will not know it by itself. The safeguard built in is the review log: the rate at which the inspector agrees with the model is a live quality signal, and a fall in it means it is time to retrain. The reviewed images are already saved for that. In a real deployment I would add an automatic alert on that rate and a scheduled retraining job."
+    },
+    {
+      "q": "How long would a real project take?",
+      "a": "The software here was built in one working session because the data was already labelled. In a real project the time goes into the camera and lighting setup, collecting and labelling images, and agreeing the acceptance rule with quality control. A realistic pilot on one inspection station is a few weeks, most of it data."
+    }
+  ],
+  "concepts": [
+    {
+      "term": "Object detection",
+      "plain": "A model that finds things in an image and draws a box around each one, with a name and a confidence. It differs from classification, which gives one label for the whole image and does not say where."
+    },
+    {
+      "term": "YOLO",
+      "plain": "A family of fast object detection models; the name means You Only Look Once, because it finds all boxes in a single pass over the image. YOLO11n is the nano version, the smallest and fastest."
+    },
+    {
+      "term": "Fine-tuning and transfer learning",
+      "plain": "Starting from a model already trained on millions of everyday photos and continuing the training on your own images. The model already knows edges and textures, so a thousand images are enough instead of a million."
+    },
+    {
+      "term": "Bounding box",
+      "plain": "The rectangle drawn around a defect, given as the pixel positions of its left, top, right and bottom sides."
+    },
+    {
+      "term": "IoU (intersection over union)",
+      "plain": "A number between 0 and 1 that says how well two boxes overlap: the shared area divided by the total area they cover together. A predicted box usually counts as correct when its IoU with the labelled box is at least 0.5."
+    },
+    {
+      "term": "Precision and recall",
+      "plain": "Recall is the share of real defects the model found. Precision is the share of the model's boxes that were real defects. Raising the confidence threshold improves precision and lowers recall."
+    },
+    {
+      "term": "mAP (mean average precision)",
+      "plain": "The standard score for detectors, from 0 to 1. For each defect type it summarises precision and recall over all confidence settings, then averages over the types. mAP at 0.5 uses an IoU of 0.5; mAP at 0.5 to 0.95 also demands tighter boxes and is always lower."
+    },
+    {
+      "term": "Confidence threshold",
+      "plain": "The minimum confidence a box needs to be kept. Here each defect type has its own, chosen on validation images, because the model is naturally more sure about some types than others."
+    },
+    {
+      "term": "Non-maximum suppression (NMS)",
+      "plain": "The model proposes many overlapping boxes for the same defect. NMS keeps the most confident one and removes the others that overlap it."
+    },
+    {
+      "term": "Letterbox",
+      "plain": "Resizing an image to the square size the model expects by scaling it and padding the empty space with grey, instead of stretching it. Stretching would change the shape of the defects."
+    },
+    {
+      "term": "ONNX and ONNX Runtime",
+      "plain": "ONNX is a standard file format for trained models, independent of the tool that trained them. ONNX Runtime is a small program from Microsoft that runs such files quickly on a CPU, from Python, C++ or C#."
+    },
+    {
+      "term": "Train, validation and test split",
+      "plain": "The images are divided into three groups. The model learns from the training group, settings are chosen on the validation group, and the final score comes from the test group, which is used once so the score is not flattering."
+    },
+    {
+      "term": "Data leakage",
+      "plain": "When information from the test images reaches training, for example a duplicate image in both groups. The score then looks better than the model really is."
+    },
+    {
+      "term": "Data augmentation",
+      "plain": "Creating variations of the training images, such as flips and brightness changes, so the model sees more variety than the dataset contains and does not memorise it."
+    },
+    {
+      "term": "Epoch",
+      "plain": "One full pass of the training over all training images. This model was trained for 50."
+    },
+    {
+      "term": "Confidence interval (bootstrap)",
+      "plain": "A range that shows how much a score could move if the test images had been a different sample. It is computed by re-scoring 1,000 random resamples of the test set; here it shows the true mAP is probably between 0.72 and 0.78."
+    },
+    {
+      "term": "Baseline",
+      "plain": "A simple method measured the same way as the model, to show what the model adds. Here it is classical image processing with OpenCV, which scores 0.09 where the model scores 0.79."
+    },
+    {
+      "term": "Confusion matrix",
+      "plain": "A table that shows, for each real defect type, what the model said: the right type, a wrong type, or nothing. Here the errors are misses and false alarms, not wrong names."
+    },
+    {
+      "term": "Human in the loop",
+      "plain": "A person reviews the cases the model is unsure about and corrects its mistakes. The corrections are kept and used to train the next version."
+    },
+    {
+      "term": "Anomaly detection",
+      "plain": "A different approach that learns only what good parts look like and flags anything unusual. It needs no labelled defects but cannot name the defect type; it was not used here."
+    },
+    {
+      "term": "AGPL licence",
+      "plain": "An open source licence that requires anyone who distributes or offers software built on the code to publish their own source code too. Ultralytics YOLO uses it and sells a commercial licence to companies that do not want that obligation."
+    },
+    {
+      "term": "Quantisation",
+      "plain": "Storing the model's numbers with 8 bits instead of 32 to make it smaller and faster, usually with a small loss of accuracy. It was not applied here and is a next step if more speed is needed."
+    }
+  ],
+  "limits": [
+    "The model was trained and tested on a public benchmark of 200 by 200 pixel grey images of hot-rolled steel from one source. A real line with its own camera, lighting and material needs new labelled images and retraining.",
+    "The dataset has no defect-free images, so the false reject rate on good parts is not measured, and the thresholds were tuned without any clean images.",
+    "Two defect types are weak at box level: crazing (AP 0.39) and rolled-in scale (AP 0.53). Crazing alone causes 132 of the 258 false alarms, and its threshold (0.08) is low.",
+    "Training stopped at a CPU budget of 50 epochs while the validation score was still rising slowly. It is one run with one seed; the spread between runs was not measured, and no search over training settings was done.",
+    "The test set is small (270 images), which is why the scores come with confidence intervals. The split is random, not by production batch, because the dataset has no batch information.",
+    "The verdict rule is generic: any confident defect rejects the part. A real acceptance standard depends on defect size and position, which needs the client's rules and a pixel-to-millimetre calibration.",
+    "Latency was measured on one small image at a time. A high resolution line camera needs tiling or a larger input, and the speed must be measured again.",
+    "Larger models, other detectors and quantisation were not compared, so no claim is made about them.",
+    "The review screen has no login, and the review log is a local CSV file with images, not a database.",
+    "The model file is AGPL-3.0 because it was trained with Ultralytics YOLO. A closed commercial product needs the Ultralytics Enterprise licence or a retrain with a permissively licensed detector.",
+    "The NEU-DET dataset has no stated licence. It is downloaded by a script and not stored in the repository, except twelve sample images kept for the demo and the tests.",
+    "Training on CPU is not exactly repeatable across machines, so a retrained model will score close to the published numbers, not identically."
+  ],
+  "run": [
+    "python -m venv .venv && source .venv/bin/activate",
+    "pip install -r requirements.txt",
+    "pytest -q",
+    "python -m defects.cli data/samples",
+    "python -m defects.app   # review screen and API on http://127.0.0.1:7860",
+    "# Optional, to retrain (needs PyTorch, about 82 minutes on CPU):",
+    "pip install -r requirements-train.txt",
+    "python scripts/download_data.py",
+    "python -m defects.baseline",
+    "python -m defects.train",
+    "python -m defects.export",
+    "python -m defects.evaluate"
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "what": "What the project does, the results, how to run it and its limits, written for a client."
+    },
+    {
+      "path": "defects/config.py",
+      "what": "Paths, the six class names, the pinned dataset version and the split settings."
+    },
+    {
+      "path": "defects/data.py",
+      "what": "Converts the Pascal VOC annotations to YOLO labels and makes the fixed, balanced split."
+    },
+    {
+      "path": "defects/metrics.py",
+      "what": "The scoring written in NumPy: IoU, average precision, mAP, confidence intervals and the confusion matrix."
+    },
+    {
+      "path": "defects/baseline.py",
+      "what": "The classical OpenCV baseline that finds defects without training."
+    },
+    {
+      "path": "defects/train.py",
+      "what": "Fine-tunes YOLO11n on the training images with Ultralytics (training only)."
+    },
+    {
+      "path": "defects/export.py",
+      "what": "Exports the trained weights to ONNX, writes the model card and checks the export against PyTorch."
+    },
+    {
+      "path": "defects/detector.py",
+      "what": "Runs the ONNX model with ONNX Runtime: resize, decoding and non-maximum suppression, no PyTorch."
+    },
+    {
+      "path": "defects/service.py",
+      "what": "Thresholds, the pass, review, reject rule, the plain-language reason and the drawing of boxes."
+    },
+    {
+      "path": "defects/evaluate.py",
+      "what": "Chooses thresholds on validation, measures the model on test, and writes the report and figures."
+    },
+    {
+      "path": "defects/reviews.py",
+      "what": "Saves the inspector's judgement and the image to the review log and summarises agreement."
+    },
+    {
+      "path": "defects/app.py",
+      "what": "The FastAPI endpoints and the Gradio review screen, served by one process."
+    },
+    {
+      "path": "defects/cli.py",
+      "what": "Command line tool that inspects one image or a folder."
+    },
+    {
+      "path": "scripts/download_data.py",
+      "what": "Downloads the NEU-DET dataset at a pinned version and prepares it for training."
+    },
+    {
+      "path": "model/defects.onnx",
+      "what": "The trained model, 10.5 MB, AGPL-3.0."
+    },
+    {
+      "path": "model/thresholds.json",
+      "what": "The confidence threshold of each defect type and the review floor, chosen on validation."
+    },
+    {
+      "path": "model/model_card.json",
+      "what": "Input and output format of the model, the class list and a checksum."
+    },
+    {
+      "path": "model/README.md",
+      "what": "Explains the licence of the model file and the options for commercial use."
+    },
+    {
+      "path": "data/splits/",
+      "what": "The lists of image names in the training, validation and test sets."
+    },
+    {
+      "path": "data/samples/",
+      "what": "Twelve test images, two per defect type, with their labelled boxes, for the demo and the tests."
+    },
+    {
+      "path": "data/README.md",
+      "what": "Where the dataset comes from, its licence situation and how to cite it."
+    },
+    {
+      "path": "reports/evaluation.md",
+      "what": "The evaluation report: headline scores, per defect type, image level, baseline comparison."
+    },
+    {
+      "path": "reports/metrics.json",
+      "what": "All measured numbers in machine-readable form."
+    },
+    {
+      "path": "reports/training.json",
+      "what": "Training settings, duration and the validation score at every epoch."
+    },
+    {
+      "path": "reports/baseline.json",
+      "what": "The settings and scores of the OpenCV baseline."
+    },
+    {
+      "path": "reports/parity.json",
+      "what": "The comparison of the ONNX detector against the PyTorch model."
+    },
+    {
+      "path": "docs/",
+      "what": "The screenshot of the review screen and the figures used in the README."
+    },
+    {
+      "path": "tests/",
+      "what": "69 tests covering data conversion, metrics, detector, verdict rule, API, review log and command line."
+    },
+    {
+      "path": "requirements.txt",
+      "what": "Pinned packages for serving, evaluation and tests; no PyTorch."
+    },
+    {
+      "path": "requirements-train.txt",
+      "what": "Extra pinned packages needed only to retrain and export."
+    },
+    {
+      "path": ".github/workflows/tests.yml",
+      "what": "Runs the tests on GitHub on every push."
+    }
+  ],
   "verification": {
-    "tests": "",
+    "tests": "69 passed in 6.2 seconds with pytest -q, offline. Run twice: in the build environment, and in a fresh environment containing only requirements.txt (no PyTorch, no Ultralytics).",
     "live_llm": "not needed",
     "cost_usd": 0,
-    "notes": ""
+    "notes": "This project uses no language model, so there is no live check and no API cost. The quick start was verified from a fresh virtual environment with only requirements.txt installed: the tests passed, the command line tool inspected the samples, and the server was started, called with curl and driven in headless Chrome to produce docs/screen.png, then stopped. All metrics come from python -m defects.evaluate run on the final exported model. The dataset (88 MB prepared) and the PyTorch weights are not committed; the 10.5 MB ONNX model and twelve sample images are. Licence points to be aware of before pushing: the model file is AGPL-3.0 (stated in the README and model/README.md) and the NEU-DET dataset has no stated licence (twelve sample images are included with attribution)."
   }
 }
