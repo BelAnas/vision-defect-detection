@@ -200,31 +200,31 @@
     {
       "name": "Interface",
       "goal": "One command that starts a review screen and a JSON API.",
-      "status": "doing",
+      "status": "done",
       "steps": [
         {
           "text": "Build the JSON endpoint that accepts an image and returns detections and a verdict",
-          "done": false
+          "done": true
         },
         {
           "text": "Build the review screen with the annotated image, the detection table and the threshold control",
-          "done": false
+          "done": true
         },
         {
           "text": "Save the inspector's confirmation or correction to a review log",
-          "done": false
+          "done": true
         },
         {
           "text": "Run the server, call it for real, and take a screenshot",
-          "done": false
+          "done": true
         }
       ],
-      "outcome": ""
+      "outcome": "python -m defects.app starts one server on port 7860. The review screen lets the inspector upload an image or pick an example, shows the boxes, a coloured verdict and a table of detections, has a slider to make the model more or less sensitive, and saves the inspector's judgement and the image to a review log. The JSON API has /api/health, /api/detect and /api/reviews/summary, and refuses empty, oversized and non-image uploads with clear messages. It was started from an environment that contains only the serving requirements (no PyTorch), called with curl, and driven in a headless browser to take docs/screen.png."
     },
     {
       "name": "Verification and documentation",
       "goal": "A repository a client can clone, run and trust.",
-      "status": "todo",
+      "status": "doing",
       "steps": [
         {
           "text": "Run the full test suite offline",
@@ -394,6 +394,26 @@
         }
       ],
       "at_scale": "I would add a set of good parts to measure the false reject rate, score by production batch to see drift over time, and track the inspector's agreement rate from the review log as the live metric."
+    },
+    {
+      "title": "What interface to give the inspector and other systems",
+      "chosen": "One Python process that serves a Gradio review screen for people and a FastAPI JSON endpoint for machines, started with one command.",
+      "why": "The two audiences are different. An inspector needs to see the image with boxes, a clear verdict and a way to say the model was wrong. A line controller or an MES needs to post an image and read JSON. Serving both from one process means one thing to install and start, and both use the same detector and the same thresholds, so they cannot disagree. Every saved review stores the image with the model's answer and the person's judgement: that log is the training data for the next version.",
+      "alternatives": [
+        {
+          "option": "Streamlit",
+          "why_not": "It is fine for a dashboard but it cannot expose a clean JSON API from the same process, so I would need two services."
+        },
+        {
+          "option": "A custom React front end",
+          "why_not": "It would look more polished, but it adds a build step and a second code base without proving anything more about the vision system."
+        },
+        {
+          "option": "API only, no screen",
+          "why_not": "A client cannot judge a vision model from JSON. Seeing the boxes on the steel is what makes the result believable, and the review log needs a person in front of a screen."
+        }
+      ],
+      "at_scale": "On a real line the camera would trigger the API directly, results would go to the plant's quality system, the review screen would sit at the inspection station with a login, and reviewed images would flow into a labelling tool and a scheduled retraining job."
     }
   ],
   "results": [],
