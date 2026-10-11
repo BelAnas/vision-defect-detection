@@ -116,31 +116,31 @@
     {
       "name": "Model",
       "goal": "A YOLO11n model fine-tuned on the training images on CPU and exported to ONNX.",
-      "status": "doing",
+      "status": "done",
       "steps": [
         {
           "text": "Time one training epoch on the CPU and choose image size and number of epochs",
-          "done": false
+          "done": true
         },
         {
           "text": "Fine-tune YOLO11n from the pretrained weights with a fixed seed",
-          "done": false
+          "done": true
         },
         {
           "text": "Record the training curve and the validation score",
-          "done": false
+          "done": true
         },
         {
           "text": "Export the best weights to ONNX",
-          "done": false
+          "done": true
         }
       ],
-      "outcome": ""
+      "outcome": "YOLO11n was fine-tuned for 50 epochs at 320 pixels on the CPU in 81.7 minutes (seed 0). Its best validation score in the training log is mAP 0.714 at IoU 0.5 and 0.408 averaged over IoU 0.5 to 0.95. The best weights were exported to a 10.5 MB ONNX file, model/defects.onnx, with a model card that records the input format, the class list and a checksum. The per-epoch history is in reports/training.json and plotted in docs/training_curve.png."
     },
     {
       "name": "Inference",
       "goal": "A detector that runs the ONNX model with ONNX Runtime and OpenCV only, and a rule that turns boxes into a verdict.",
-      "status": "todo",
+      "status": "doing",
       "steps": [
         {
           "text": "Write the image preparation (letterbox resize) and its inverse mapping",
@@ -290,6 +290,50 @@
         }
       ],
       "at_scale": "In a plant the split must be by time or by production batch, not random: images from the same coil look alike, and a random split lets the model see near-copies of the test images. The public dataset has no batch information, so I could not do this here."
+    },
+    {
+      "title": "Which detection model to fine-tune",
+      "chosen": "YOLO11n, the smallest model of the Ultralytics YOLO11 family (2.6 million parameters), starting from weights pretrained on the COCO dataset.",
+      "why": "The whole project has to train and run on a CPU. The nano model trains in 82 minutes on 8 cores and answers in about 21 milliseconds per image. Starting from pretrained weights matters more than the model size here: 1,257 training images are too few to learn edges and textures from zero, but enough to re-aim a model that already knows them.",
+      "alternatives": [
+        {
+          "option": "A larger YOLO model (small or medium)",
+          "why_not": "It would probably add a few points of accuracy, but training is three to eight times slower on CPU and the serving latency goes up in proportion. I did not measure it, so I do not claim a number."
+        },
+        {
+          "option": "A transformer detector such as RT-DETR",
+          "why_not": "It needs a graphics card to train in reasonable time and is slower on CPU. Its licence is more permissive, which is its real advantage; see the licence decision."
+        },
+        {
+          "option": "Anomaly detection trained on good parts only (for example PatchCore)",
+          "why_not": "That is the right tool when there are no labelled defects, but it cannot name the defect type, and this dataset has no defect-free images to learn from."
+        },
+        {
+          "option": "Image classification (one label per image)",
+          "why_not": "It does not say where the defect is or how many there are, which the inspector needs in order to check the result."
+        }
+      ],
+      "at_scale": "With a graphics card for training I would compare the nano, small and medium models on the client's images and pick the smallest one that meets the agreed miss rate at the line speed."
+    },
+    {
+      "title": "Image size and training length",
+      "chosen": "Training and inference at 320 by 320 pixels, for 50 epochs, with flips in both directions and brightness changes as augmentation.",
+      "why": "The source images are 200 by 200 pixels, so 320 enlarges them by 1.6, which helps with the thin inclusions. I timed one epoch first (about 100 seconds) and set 50 epochs as a budget of roughly an hour and a half. A steel surface has no up or down, so flipping in both directions is valid extra variety; hue and saturation changes are switched off because the images are grey.",
+      "alternatives": [
+        {
+          "option": "640 pixels, the YOLO default",
+          "why_not": "Four times the computation per image for a 200 pixel source; there is no extra detail to find."
+        },
+        {
+          "option": "Train until the validation score stops improving",
+          "why_not": "The curve was still rising slowly at epoch 50 (validation mAP at 0.5 went from 0.69 at epoch 40 to 0.71 at epoch 50), so more epochs would likely help a little. I stopped at the CPU budget and say so in the limits."
+        },
+        {
+          "option": "Search over learning rate and augmentation settings",
+          "why_not": "Each trial costs over an hour on this machine. I kept the library defaults, which are well tested, and spent the time on honest evaluation."
+        }
+      ],
+      "at_scale": "On a graphics card the same run takes a few minutes, so I would train to convergence, run a small search over the settings, and repeat with three seeds to report the spread."
     }
   ],
   "results": [],

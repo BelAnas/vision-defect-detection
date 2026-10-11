@@ -1,0 +1,18 @@
+{
+  "file": "defects.onnx",
+  "sha256": "b1e00c2dc23fc93ae292294ee5188771d77b7ea2db13e63e0cb825366abbf019",
+  "size_mb": 10.54,
+  "architecture": "YOLO11n (Ultralytics), fine-tuned from COCO weights",
+  "input": "1 x 3 x 320 x 320, RGB, 0..1, letterboxed with grey 114",
+  "output": "1 x (4 + classes) x anchors: cx, cy, w, h in input pixels, then one score per class",
+  "classes": [
+    "crazing",
+    "inclusion",
+    "patches",
+    "pitted_surface",
+    "rolled-in_scale",
+    "scratches"
+  ],
+  "opset": 17,
+  "licence": "AGPL-3.0 (inherited from Ultralytics YOLO); see README"
+}
