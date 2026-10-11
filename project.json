@@ -1,0 +1,307 @@
+{
+  "id": 6,
+  "slug": "defect-detection",
+  "repo": "vision-defect-detection",
+  "title": "Visual defect detection for manufacturing",
+  "tagline": "A YOLO detector fine-tuned on steel surface defects, exported to ONNX and served on CPU with a review screen for the quality inspector.",
+  "category": "Computer Vision",
+  "status": "building",
+  "started": "2026-10-11",
+  "finished": "",
+  "pitch": "I built a visual inspection system that looks at a photo of a steel surface, draws a box around every defect, names the defect type and tells the inspector whether the part passes, needs a second look or is rejected. I fine-tuned a small YOLO model on a public dataset of 1,797 labelled steel images, measured it on images it never saw, and exported it so that it runs on an ordinary CPU with no graphics card and no deep learning framework installed. The inspector gets a review screen where every decision can be confirmed or corrected, and those corrections are saved as new training data.",
+  "problem": "A steel plant, or any factory with a surface to inspect, checks parts by eye. People get tired, two inspectors disagree, and a defect that slips through is paid for later as a customer return. Cameras are cheap, but the plant needs software that finds the defect, says what kind it is, runs on the modest computer already next to the line, and is honest about how often it is wrong.",
+  "solution": "A small object detection model (YOLO11 nano) is fine-tuned on the public NEU steel surface defect dataset, which has six defect types with a box drawn around each defect. The trained model is exported to the ONNX format and run with ONNX Runtime, so the serving side needs no PyTorch and works on a CPU. Around the model there is a decision layer that turns boxes into a verdict (pass, review, reject), an evaluation script that measures the exported model on held-out images, and a review screen plus a JSON API for the inspector and for other systems.",
+  "features": [
+    "Finds and names six steel surface defect types, with a box and a confidence for each one",
+    "Runs on CPU with ONNX Runtime only: no PyTorch and no graphics card on the serving machine",
+    "Turns detections into a verdict for the inspector: pass, review or reject",
+    "Review screen where the inspector confirms or corrects each result, saved as a log for retraining",
+    "JSON API so a line controller or another system can send an image and get the detections back",
+    "Evaluation on held-out images: accuracy per defect type, missed defects, false alarms and speed",
+    "A classical OpenCV baseline, measured the same way, to show what the trained model adds"
+  ],
+  "stack": [
+    {
+      "name": "Ultralytics YOLO11n",
+      "role": "The detection model and the training loop used for fine-tuning.",
+      "why": "The nano model has about 2.6 million parameters, so it trains and runs on a CPU. Larger models or transformer detectors would need a graphics card to train in reasonable time."
+    },
+    {
+      "name": "ONNX Runtime",
+      "role": "Runs the exported model in production.",
+      "why": "It is a small runtime that needs no PyTorch, so the serving install is light and the model can later move to a C++, .NET or edge device without retraining."
+    },
+    {
+      "name": "OpenCV",
+      "role": "Reads images, resizes them for the model, draws the boxes, and powers the classical baseline.",
+      "why": "It is the standard image library, fast on CPU, and already present on most industrial vision computers."
+    },
+    {
+      "name": "Gradio",
+      "role": "The review screen for the inspector.",
+      "why": "It gives image upload, an annotated result and a feedback form in a few lines of Python, which is enough for a review tool; a custom React front end would add work without adding proof."
+    },
+    {
+      "name": "FastAPI",
+      "role": "The JSON endpoint for other systems, and the host for the review screen.",
+      "why": "It validates input, documents the API automatically and serves the Gradio screen in the same process, so there is one command to run."
+    },
+    {
+      "name": "pytest",
+      "role": "Automated tests for the geometry, the metrics, the detector and the API.",
+      "why": "It is the standard Python test runner and the tests run offline."
+    }
+  ],
+  "keywords": [],
+  "topics": [],
+  "workflow": [
+    {
+      "step": "Image in",
+      "detail": "A photo of the surface arrives from the review screen, the API or the command line. It is decoded with OpenCV."
+    },
+    {
+      "step": "Prepare",
+      "detail": "The image is resized to the model's input size with padding so its shape is not distorted, and the pixel values are scaled to the range 0 to 1."
+    },
+    {
+      "step": "Detect",
+      "detail": "ONNX Runtime runs the exported YOLO model on the CPU. The model returns several thousand candidate boxes, each with a score for each of the six defect types."
+    },
+    {
+      "step": "Clean up",
+      "detail": "Candidates below the confidence threshold are dropped, overlapping boxes for the same defect are merged (non-maximum suppression), and box coordinates are mapped back to the original image."
+    },
+    {
+      "step": "Decide",
+      "detail": "A rule turns the remaining boxes into a verdict: no box means pass, a confident box means reject, and a low-confidence box means the inspector should look."
+    },
+    {
+      "step": "Review",
+      "detail": "The inspector sees the image with boxes and the verdict, confirms it or corrects it, and the answer is appended to a review log that becomes training data for the next model version."
+    }
+  ],
+  "phases": [
+    {
+      "name": "Foundation",
+      "goal": "A repository with the public dataset downloaded, converted and split, the scoring code written, and a classical baseline measured.",
+      "status": "done",
+      "steps": [
+        {
+          "text": "Create the repository skeleton, the configuration and the pinned requirements",
+          "done": true
+        },
+        {
+          "text": "Write the download script that fetches the NEU steel defect dataset at a fixed revision",
+          "done": true
+        },
+        {
+          "text": "Convert the Pascal VOC annotations to YOLO format and check every box",
+          "done": true
+        },
+        {
+          "text": "Split the images into train, validation and test sets with a fixed seed, balanced by defect type",
+          "done": true
+        },
+        {
+          "text": "Write the detection metrics (IoU, average precision, mAP) with tests",
+          "done": true
+        },
+        {
+          "text": "Measure a classical OpenCV baseline that finds defects without any training",
+          "done": true
+        }
+      ],
+      "outcome": "The repository has the NEU steel defect dataset downloaded at a pinned version and converted to YOLO labels: 1,257 training, 270 validation and 270 test images with 2,889, 662 and 626 labelled defects. The scoring code (IoU, average precision, mAP, confidence intervals, confusion matrix) is written in NumPy and covered by 21 passing tests. The classical OpenCV baseline, tuned on validation and measured on test, finds defects with an average precision of 0.094 at IoU 0.5 (precision 0.21, recall 0.22), which is the number the trained model has to beat."
+    },
+    {
+      "name": "Model",
+      "goal": "A YOLO11n model fine-tuned on the training images on CPU and exported to ONNX.",
+      "status": "doing",
+      "steps": [
+        {
+          "text": "Time one training epoch on the CPU and choose image size and number of epochs",
+          "done": false
+        },
+        {
+          "text": "Fine-tune YOLO11n from the pretrained weights with a fixed seed",
+          "done": false
+        },
+        {
+          "text": "Record the training curve and the validation score",
+          "done": false
+        },
+        {
+          "text": "Export the best weights to ONNX",
+          "done": false
+        }
+      ],
+      "outcome": ""
+    },
+    {
+      "name": "Inference",
+      "goal": "A detector that runs the ONNX model with ONNX Runtime and OpenCV only, and a rule that turns boxes into a verdict.",
+      "status": "todo",
+      "steps": [
+        {
+          "text": "Write the image preparation (letterbox resize) and its inverse mapping",
+          "done": false
+        },
+        {
+          "text": "Decode the model output and apply non-maximum suppression per defect type",
+          "done": false
+        },
+        {
+          "text": "Check that the ONNX detector agrees with the PyTorch model on the same images",
+          "done": false
+        },
+        {
+          "text": "Write the verdict rule (pass, review, reject) and the drawing of boxes",
+          "done": false
+        },
+        {
+          "text": "Add a command line tool that detects defects in one image or a folder",
+          "done": false
+        }
+      ],
+      "outcome": ""
+    },
+    {
+      "name": "Evaluation",
+      "goal": "Honest numbers for the exported model on the held-out test images.",
+      "status": "todo",
+      "steps": [
+        {
+          "text": "Choose the confidence thresholds on the validation set, never on the test set",
+          "done": false
+        },
+        {
+          "text": "Measure mAP and per-class precision and recall on the test set with the ONNX model",
+          "done": false
+        },
+        {
+          "text": "Add confidence intervals by resampling the test images",
+          "done": false
+        },
+        {
+          "text": "Measure CPU latency per image",
+          "done": false
+        },
+        {
+          "text": "Produce figures: predictions against ground truth, per-class scores, confusion between classes",
+          "done": false
+        },
+        {
+          "text": "Write the evaluation report with the weak spots named",
+          "done": false
+        }
+      ],
+      "outcome": ""
+    },
+    {
+      "name": "Interface",
+      "goal": "One command that starts a review screen and a JSON API.",
+      "status": "todo",
+      "steps": [
+        {
+          "text": "Build the JSON endpoint that accepts an image and returns detections and a verdict",
+          "done": false
+        },
+        {
+          "text": "Build the review screen with the annotated image, the detection table and the threshold control",
+          "done": false
+        },
+        {
+          "text": "Save the inspector's confirmation or correction to a review log",
+          "done": false
+        },
+        {
+          "text": "Run the server, call it for real, and take a screenshot",
+          "done": false
+        }
+      ],
+      "outcome": ""
+    },
+    {
+      "name": "Verification and documentation",
+      "goal": "A repository a client can clone, run and trust.",
+      "status": "todo",
+      "steps": [
+        {
+          "text": "Run the full test suite offline",
+          "done": false
+        },
+        {
+          "text": "Run the quick start from a clean environment using only the serving requirements",
+          "done": false
+        },
+        {
+          "text": "Write the README with the diagram, real output, results and limits",
+          "done": false
+        },
+        {
+          "text": "Complete the dashboard entry: decisions, client questions, concepts, keywords",
+          "done": false
+        },
+        {
+          "text": "Check for secrets, add the licence, and make the final commit",
+          "done": false
+        }
+      ],
+      "outcome": ""
+    }
+  ],
+  "decisions": [
+    {
+      "title": "Which dataset to train on",
+      "chosen": "The public NEU steel surface defect dataset (NEU-DET), in its cleaned release with duplicates removed: 1,797 images, 4,177 labelled boxes, six defect types.",
+      "why": "It is a real industrial dataset with boxes drawn by people, it is the standard benchmark for steel surface inspection so my numbers can be compared with published ones, and it is small enough to train on a CPU in about an hour. I used the cleaned release, pinned to one exact version, because the original contains three duplicated images; a duplicate that lands in both the training and the test set makes the test score look better than it is.",
+      "alternatives": [
+        {
+          "option": "Severstal steel defect dataset",
+          "why_not": "It is larger and closer to a production line, but it is distributed through Kaggle behind a login and a competition agreement, so a stranger could not run my download script, and its 12,000 large images are too slow to train on a CPU."
+        },
+        {
+          "option": "MVTec AD",
+          "why_not": "It is built for anomaly detection (learn from good parts only) and its licence forbids commercial use. It answers a different question from the one a client asks when they say YOLO and object detection."
+        },
+        {
+          "option": "Synthetic defects drawn by a script",
+          "why_not": "A model that scores well on defects I drew myself proves nothing about real steel."
+        }
+      ],
+      "at_scale": "A real project trains on the client's own images from the client's own camera and lighting. The public dataset is the starting point and the proof of method; I would expect to label a few hundred images per defect type from the real line, and I would agree the dataset licence before anything ships, because the NEU authors state no licence."
+    },
+    {
+      "title": "How to split the data and what to compare against",
+      "chosen": "A fixed 70/15/15 split into training, validation and test images, balanced by defect type, with the image lists committed to the repository. A classical OpenCV method with no training is measured on the same test images as the baseline.",
+      "why": "The test images are touched once, at the end. Every setting (training length, confidence thresholds, the baseline's own settings) is chosen on the validation images. Committing the lists means anyone can check which images a number refers to. The baseline matters because a client should see what the trained model adds over a week of classical image processing: the baseline finds defects with an average precision of 0.09.",
+      "alternatives": [
+        {
+          "option": "The 80/10/10 split published with the dataset",
+          "why_not": "Its test set has 180 images, 30 per defect type. With 270 test images the confidence intervals are noticeably tighter, which matters more to me than matching someone else's split."
+        },
+        {
+          "option": "Cross-validation over five folds",
+          "why_not": "It would give a more stable number but needs five training runs of over an hour each on CPU. I report a confidence interval from resampling the test images instead."
+        },
+        {
+          "option": "No baseline",
+          "why_not": "A score with nothing to compare it to cannot be judged."
+        }
+      ],
+      "at_scale": "In a plant the split must be by time or by production batch, not random: images from the same coil look alike, and a random split lets the model see near-copies of the test images. The public dataset has no batch information, so I could not do this here."
+    }
+  ],
+  "results": [],
+  "client_qa": [],
+  "concepts": [],
+  "limits": [],
+  "run": [],
+  "files": [],
+  "verification": {
+    "tests": "",
+    "live_llm": "not needed",
+    "cost_usd": 0,
+    "notes": ""
+  }
+}

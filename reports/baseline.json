@@ -1,0 +1,21 @@
+{
+  "method": "background subtraction + Otsu threshold + contours (OpenCV, no training)",
+  "scoring": "class-agnostic, IoU 0.5",
+  "settings_tried_on_validation": 27,
+  "chosen_settings": {
+    "sigma": 20,
+    "kernel": 5,
+    "min_area_frac": 0.02
+  },
+  "validation_ap50": 0.1028,
+  "test_ap50": 0.0942,
+  "test_ap50_interval95": [
+    0.0745,
+    0.1251
+  ],
+  "test_ap50_95": 0.031,
+  "confidence_threshold_from_validation": 0.22,
+  "test_precision": 0.2075,
+  "test_recall": 0.222,
+  "test_images": 270
+}

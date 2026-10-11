@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+# The dataset is downloaded by scripts/download_data.py and is not redistributed here.
+data/neu/
+# Training runs and PyTorch weights are rebuilt by `python -m defects.train`.
+runs/
+*.pt
+# The inspector's review log is local data.
+reviews/
+runs_train.log

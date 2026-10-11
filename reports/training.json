@@ -1,0 +1,17 @@
+{
+  "base_weights": "yolo11n.pt (COCO pretrained)",
+  "epochs": 1,
+  "imgsz": 320,
+  "batch": 32,
+  "seed": 0,
+  "device": "cpu",
+  "train_minutes": 1.9,
+  "history": [
+    {
+      "epoch": 1,
+      "val_map50": 0.0244,
+      "val_map50_95": 0.0092,
+      "train_box_loss": 2.0497
+    }
+  ]
+}
