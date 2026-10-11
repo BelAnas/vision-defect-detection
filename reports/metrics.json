@@ -1,0 +1,238 @@
+{
+  "model": {
+    "file": "defects.onnx",
+    "size_mb": 10.54,
+    "input": 320
+  },
+  "runtime": "ONNX Runtime, CPUExecutionProvider",
+  "validation": {
+    "images": 270,
+    "map50": 0.7249,
+    "map50_95": 0.3928
+  },
+  "test": {
+    "images": 270,
+    "labelled_boxes": 626,
+    "map50": 0.7472,
+    "map50_interval95": [
+      0.72,
+      0.7818
+    ],
+    "map50_95": 0.4126,
+    "map50_95_interval95": [
+      0.3919,
+      0.4424
+    ],
+    "precision": 0.6451,
+    "recall": 0.7492,
+    "found": 469,
+    "missed": 157,
+    "false_alarms": 258,
+    "class_agnostic_ap50": 0.7863,
+    "class_agnostic_ap50_interval95": [
+      0.7508,
+      0.8191
+    ]
+  },
+  "per_class": [
+    {
+      "class": "crazing",
+      "labelled_boxes": 99,
+      "ap50": 0.394,
+      "ap50_95": 0.1299,
+      "threshold": 0.08,
+      "precision": 0.3089,
+      "recall": 0.596,
+      "f1": 0.4069,
+      "found": 59,
+      "missed": 40,
+      "false_alarms": 132
+    },
+    {
+      "class": "inclusion",
+      "labelled_boxes": 150,
+      "ap50": 0.8468,
+      "ap50_95": 0.4425,
+      "threshold": 0.26,
+      "precision": 0.7284,
+      "recall": 0.7867,
+      "f1": 0.7564,
+      "found": 118,
+      "missed": 32,
+      "false_alarms": 44
+    },
+    {
+      "class": "patches",
+      "labelled_boxes": 123,
+      "ap50": 0.9296,
+      "ap50_95": 0.5998,
+      "threshold": 0.34,
+      "precision": 0.845,
+      "recall": 0.8862,
+      "f1": 0.8651,
+      "found": 109,
+      "missed": 14,
+      "false_alarms": 20
+    },
+    {
+      "class": "pitted_surface",
+      "labelled_boxes": 67,
+      "ap50": 0.8374,
+      "ap50_95": 0.5284,
+      "threshold": 0.12,
+      "precision": 0.7812,
+      "recall": 0.7463,
+      "f1": 0.7634,
+      "found": 50,
+      "missed": 17,
+      "false_alarms": 14
+    },
+    {
+      "class": "rolled-in_scale",
+      "labelled_boxes": 102,
+      "ap50": 0.5261,
+      "ap50_95": 0.2022,
+      "threshold": 0.22,
+      "precision": 0.5729,
+      "recall": 0.5392,
+      "f1": 0.5556,
+      "found": 55,
+      "missed": 47,
+      "false_alarms": 41
+    },
+    {
+      "class": "scratches",
+      "labelled_boxes": 85,
+      "ap50": 0.9496,
+      "ap50_95": 0.573,
+      "threshold": 0.45,
+      "precision": 0.9176,
+      "recall": 0.9176,
+      "f1": 0.9176,
+      "found": 78,
+      "missed": 7,
+      "false_alarms": 7
+    }
+  ],
+  "thresholds": {
+    "per_class": {
+      "crazing": 0.08,
+      "inclusion": 0.26,
+      "patches": 0.34,
+      "pitted_surface": 0.12,
+      "rolled-in_scale": 0.22,
+      "scratches": 0.45
+    },
+    "review_floor": 0.08
+  },
+  "image_level_on_defective_test_images": {
+    "reject": 268,
+    "review": 0,
+    "pass": 2
+  },
+  "confusion_matrix": {
+    "labels": [
+      "crazing",
+      "inclusion",
+      "patches",
+      "pitted_surface",
+      "rolled-in_scale",
+      "scratches",
+      "nothing"
+    ],
+    "rows_labelled_columns_predicted": [
+      [
+        59,
+        0,
+        0,
+        0,
+        0,
+        0,
+        40
+      ],
+      [
+        0,
+        118,
+        0,
+        0,
+        0,
+        0,
+        32
+      ],
+      [
+        0,
+        0,
+        109,
+        0,
+        0,
+        0,
+        14
+      ],
+      [
+        0,
+        0,
+        0,
+        50,
+        0,
+        0,
+        17
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        55,
+        0,
+        47
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        78,
+        7
+      ],
+      [
+        132,
+        44,
+        20,
+        14,
+        41,
+        7,
+        0
+      ]
+    ]
+  },
+  "latency": {
+    "images_timed": 810,
+    "mean_ms": 21.9,
+    "p50_ms": 20.7,
+    "p95_ms": 34.0,
+    "images_per_second": 45.8,
+    "cpu": "Intel(R) Xeon(R) CPU E5-1620 v3 @ 3.50GHz"
+  },
+  "baseline": {
+    "method": "background subtraction + Otsu threshold + contours (OpenCV, no training)",
+    "scoring": "class-agnostic, IoU 0.5",
+    "settings_tried_on_validation": 27,
+    "chosen_settings": {
+      "sigma": 20,
+      "kernel": 5,
+      "min_area_frac": 0.02
+    },
+    "validation_ap50": 0.1028,
+    "test_ap50": 0.0942,
+    "test_ap50_interval95": [
+      0.0745,
+      0.1251
+    ],
+    "test_ap50_95": 0.031,
+    "confidence_threshold_from_validation": 0.22,
+    "test_precision": 0.2075,
+    "test_recall": 0.222,
+    "test_images": 270
+  }
+}

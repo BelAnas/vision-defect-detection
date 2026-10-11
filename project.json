@@ -168,39 +168,39 @@
     {
       "name": "Evaluation",
       "goal": "Honest numbers for the exported model on the held-out test images.",
-      "status": "doing",
+      "status": "done",
       "steps": [
         {
           "text": "Choose the confidence thresholds on the validation set, never on the test set",
-          "done": false
+          "done": true
         },
         {
           "text": "Measure mAP and per-class precision and recall on the test set with the ONNX model",
-          "done": false
+          "done": true
         },
         {
           "text": "Add confidence intervals by resampling the test images",
-          "done": false
+          "done": true
         },
         {
           "text": "Measure CPU latency per image",
-          "done": false
+          "done": true
         },
         {
           "text": "Produce figures: predictions against ground truth, per-class scores, confusion between classes",
-          "done": false
+          "done": true
         },
         {
           "text": "Write the evaluation report with the weak spots named",
-          "done": false
+          "done": true
         }
       ],
-      "outcome": ""
+      "outcome": "The exported model was measured on the 270 held-out test images (626 labelled defects) by python -m defects.evaluate. mAP at IoU 0.5 is 0.747 (95 percent interval 0.720 to 0.782) and mAP at 0.5 to 0.95 is 0.413. At the thresholds chosen on validation, it finds 469 of 626 defects (recall 0.75) with 258 false alarms (precision 0.65). Scratches (0.95), patches (0.93), inclusion (0.85) and pitted surface (0.84) are strong; rolled-in scale (0.53) and crazing (0.39) are weak. Of the 270 defective test images, 268 are rejected and 2 pass. Finding a defect regardless of type, the model scores 0.786 against 0.094 for the OpenCV baseline. Median latency is about 21 ms per image on a 2014 Xeon CPU. The report is reports/evaluation.md with figures in docs/."
     },
     {
       "name": "Interface",
       "goal": "One command that starts a review screen and a JSON API.",
-      "status": "todo",
+      "status": "doing",
       "steps": [
         {
           "text": "Build the JSON endpoint that accepts an image and returns detections and a verdict",
@@ -374,6 +374,26 @@
         }
       ],
       "at_scale": "The decision rule would come from the client's quality standard: which defect types matter, at what size, on which zone of the part. The thresholds would be set from the cost of a missed defect against the cost of a false reject, measured on good and bad parts from the line."
+    },
+    {
+      "title": "How to measure the model",
+      "chosen": "My own evaluation script scores the exported ONNX file on the 270 test images, with metrics written in NumPy, thresholds chosen on the validation images only, and a 95 percent confidence interval from resampling the test images 1,000 times.",
+      "why": "The number a client should trust is the one measured on the file that ships, through the code that runs in production, not the number the training library printed for its own PyTorch model. Writing the metrics out (about 200 lines, with tests against hand-computed cases) means I can explain exactly what mAP is and can add what the standard tools do not report: the count of missed defects and false alarms at the working thresholds, and what happens per image. The interval matters because 270 images is a small test set: mAP at 0.5 is 0.747, and the honest statement is that it lies between 0.72 and 0.78.",
+      "alternatives": [
+        {
+          "option": "Report the validation score from the training log",
+          "why_not": "That score was used to pick the best epoch, so it is slightly optimistic, and it measures the PyTorch model, not the exported one."
+        },
+        {
+          "option": "Use the pycocotools library",
+          "why_not": "It is the reference implementation and would give nearly the same mAP, but it needs a compiler to install and does not give the per-threshold counts. My implementation follows the same recipe (101 recall points, one match per labelled box)."
+        },
+        {
+          "option": "Report a single number without an interval",
+          "why_not": "On a test set this small, a difference of two points between two models can be noise. The interval shows that."
+        }
+      ],
+      "at_scale": "I would add a set of good parts to measure the false reject rate, score by production batch to see drift over time, and track the inspector's agreement rate from the review log as the live metric."
     }
   ],
   "results": [],

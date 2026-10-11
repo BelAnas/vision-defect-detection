@@ -1,0 +1,13 @@
+{
+  "chosen_on": "validation split (270 images), never the test split",
+  "rule": "per class: confidence with the best F1 at IoU 0.5; review floor: highest value leaving a box on at least 99% of validation images",
+  "per_class": {
+    "crazing": 0.08,
+    "inclusion": 0.26,
+    "patches": 0.34,
+    "pitted_surface": 0.12,
+    "rolled-in_scale": 0.22,
+    "scratches": 0.45
+  },
+  "review_floor": 0.08
+}
