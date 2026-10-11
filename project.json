@@ -140,35 +140,35 @@
     {
       "name": "Inference",
       "goal": "A detector that runs the ONNX model with ONNX Runtime and OpenCV only, and a rule that turns boxes into a verdict.",
-      "status": "doing",
+      "status": "done",
       "steps": [
         {
           "text": "Write the image preparation (letterbox resize) and its inverse mapping",
-          "done": false
+          "done": true
         },
         {
           "text": "Decode the model output and apply non-maximum suppression per defect type",
-          "done": false
+          "done": true
         },
         {
           "text": "Check that the ONNX detector agrees with the PyTorch model on the same images",
-          "done": false
+          "done": true
         },
         {
           "text": "Write the verdict rule (pass, review, reject) and the drawing of boxes",
-          "done": false
+          "done": true
         },
         {
           "text": "Add a command line tool that detects defects in one image or a folder",
-          "done": false
+          "done": true
         }
       ],
-      "outcome": ""
+      "outcome": "The detector in defects/detector.py loads the ONNX file with ONNX Runtime and does the resize, decoding and non-maximum suppression itself, with no PyTorch. On 60 validation images it returns the same 107 boxes as the PyTorch model, with a largest confidence difference of 0.0 (reports/parity.json). defects/service.py turns the boxes into a pass, review or reject verdict with one plain sentence of explanation and draws the boxes on the image. The command line tool inspects a file or a folder: on the twelve sample images it answers in 21 to 36 milliseconds each."
     },
     {
       "name": "Evaluation",
       "goal": "Honest numbers for the exported model on the held-out test images.",
-      "status": "todo",
+      "status": "doing",
       "steps": [
         {
           "text": "Choose the confidence thresholds on the validation set, never on the test set",
@@ -334,6 +334,46 @@
         }
       ],
       "at_scale": "On a graphics card the same run takes a few minutes, so I would train to convergence, run a small search over the settings, and repeat with three seeds to report the spread."
+    },
+    {
+      "title": "How to run the model in production",
+      "chosen": "ONNX Runtime on CPU, with the image preparation and the box clean-up (letterbox resize, decoding, non-maximum suppression) written in this repository with NumPy and OpenCV.",
+      "why": "The serving install has no PyTorch and no Ultralytics: I checked this by installing only requirements.txt into an empty environment and running the tests there. That makes the install small, removes the training library from the production machine, and means the same ONNX file can be loaded from C++, C# or an edge device later. I verified the export against PyTorch on 60 validation images: 107 boxes from each, all 107 matched, with identical confidences.",
+      "alternatives": [
+        {
+          "option": "Serve with the Ultralytics library directly",
+          "why_not": "It is three lines of code, but it pulls PyTorch (hundreds of megabytes) onto the production machine and ties the running service to the AGPL-licensed library."
+        },
+        {
+          "option": "OpenVINO",
+          "why_not": "Usually faster than ONNX Runtime on Intel processors, but it only targets Intel hardware. ONNX is the neutral format, and an OpenVINO build can be made from the same file if the line needs more speed."
+        },
+        {
+          "option": "TensorRT",
+          "why_not": "It needs an NVIDIA graphics card, which this project deliberately does not assume."
+        }
+      ],
+      "at_scale": "For a camera at line speed I would benchmark OpenVINO and 8-bit quantisation on the actual industrial PC, and batch images if several cameras share one machine."
+    },
+    {
+      "title": "How to turn boxes into a decision",
+      "chosen": "Three outcomes. Reject when at least one box is at or above the confidence threshold of its defect type. Review when there are only weaker boxes above a low floor. Pass when there is nothing above the floor. Each defect type has its own threshold.",
+      "why": "A model returns boxes and probabilities; a line needs a decision, and it needs a way to send doubtful parts to a person instead of guessing. One threshold per defect type is necessary because the model's confidence means different things for different types: it is very sure about scratches (threshold 0.45) and never very sure about crazing (threshold 0.08).",
+      "alternatives": [
+        {
+          "option": "One threshold of 0.25 for everything, the library default",
+          "why_not": "It would drop most crazing detections, whose confidences are low even when they are right, and keep too many weak scratch boxes."
+        },
+        {
+          "option": "Reject on any box at all",
+          "why_not": "It gives the inspector no way to tell a clear defect from a doubtful one."
+        },
+        {
+          "option": "Rules on defect size and position, as in a real acceptance standard",
+          "why_not": "That is how a plant actually decides (a 2 mm scratch may be fine, a 20 mm one is not), but it needs the client's standard and a pixel-to-millimetre calibration. The rule lives in one function so it can be replaced."
+        }
+      ],
+      "at_scale": "The decision rule would come from the client's quality standard: which defect types matter, at what size, on which zone of the part. The thresholds would be set from the cost of a missed defect against the cost of a false reject, measured on good and bad parts from the line."
     }
   ],
   "results": [],

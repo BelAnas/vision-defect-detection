@@ -1,0 +1,9 @@
+{
+  "images": 60,
+  "confidence": 0.25,
+  "boxes_pytorch": 107,
+  "boxes_onnx": 107,
+  "boxes_matched": 107,
+  "mean_iou_of_matched": 1.0,
+  "max_confidence_difference": 0.0
+}
